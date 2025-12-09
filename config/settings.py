@@ -5,28 +5,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings"""
     
-    # Atomic service URLs
-    INTEGRATIONS_SERVICE_URL: str = os.getenv(
-        "https://integrations-svc-ms2-ft4pa23xra-uc.a.run.app",
-        "http://localhost:8001"
-    )
-    ACTIONS_SERVICE_URL: str = os.getenv(
-        "ACTIONS_SERVICE_URL",
-        "http://localhost:8002"
-    )
-    CLASSIFICATION_SERVICE_URL: str = os.getenv(
-        "CLASSIFICATION_SERVICE_URL",
-        "http://localhost:8003"
-    )
+    # Atomic service URLs - defaults to localhost for local development
+    INTEGRATIONS_SERVICE_URL: str = "http://localhost:8001"
+    ACTIONS_SERVICE_URL: str = "http://localhost:8002"
+    CLASSIFICATION_SERVICE_URL: str = "http://localhost:8003"
+    DATABASE_URL: str = "postgresql://user:password@localhost:5432/composite_db"
     
     # Request timeout in seconds
-    REQUEST_TIMEOUT: int = int(os.getenv("REQUEST_TIMEOUT", "30"))
-    
-    # Database connection settings (for coordination)
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://user:password@localhost:5432/composite_db"
-    )
+    REQUEST_TIMEOUT: int = 30
     
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
