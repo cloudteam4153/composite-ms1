@@ -15,9 +15,9 @@ This service acts as a gateway/orchestrator that:
 
 The composite service coordinates three atomic microservices:
 
-1. **Integrations Service** (port 8000) - External resource integration, Gmail, OAuth
-2. **Actions Service** (port 8004) - Task management, todos, follow-ups
-3. **Classification Service** (port 8001) - AI-powered message classification and prioritization
+1. **Integrations Service** (port 8001 if running locally) - External resource integration, Gmail, OAuth
+2. **Actions Service** (port 8002 if running locally) - Task management, todos, follow-ups
+3. **Classification Service** (port 8003 if running locally) - AI-powered message classification and prioritization
 
 ## Features
 
@@ -54,6 +54,7 @@ The service provides utilities to:
 
 ### Prerequisites
 - Python 3.9+
+- Docker 29.1+
 - All atomic microservices running and accessible
 
 ### Installation (docker)
@@ -63,7 +64,8 @@ $ git clone https://github.com/cloudteam4153/composite-ms1
 $ cd composite-ms1
 ```
 
-2. Docker Compose (on a system with docker already installed)
+2. Docker Compose (on a system with docker already installed)   
+[Install Docker For Debian - typical GCP vm](https://docs.docker.com/engine/install/debian/#install-using-the-repository)
 ```
 # make sure you are in /composite-ms1
 $ sudo docker compose up -d --build
@@ -81,7 +83,7 @@ $ sudo docker compose down
 pip install -r requirements.txt
 ```
 
-2. Configure environment variables (optional, defaults provided):
+2. Configure environment variables (optional, defaults provided; replace links with production links when available):
 ```bash
 export INTEGRATIONS_SERVICE_URL=http://localhost:8001
 export ACTIONS_SERVICE_URL=http://localhost:8002
@@ -114,8 +116,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ## API Documentation
 
 Once running, access:
-- **Swagger UI**: http://localhost:8002/docs
-- **ReDoc**: http://localhost:8002/redoc
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ## API Endpoints
 
