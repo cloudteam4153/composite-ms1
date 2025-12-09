@@ -56,7 +56,25 @@ The service provides utilities to:
 - Python 3.9+
 - All atomic microservices running and accessible
 
-### Installation
+### Installation (docker)
+1. Git clone
+```
+$ git clone https://github.com/cloudteam4153/composite-ms1
+$ cd composite-ms1
+```
+
+2. Docker Compose (on a system with docker already installed)
+```
+# make sure you are in /composite-ms1
+$ sudo docker compose up -d --build
+```
+
+3. Shut Down
+```
+$ sudo docker compose down
+```
+
+### Installation (typical with venv)
 
 1. Install dependencies:
 ```bash
@@ -65,20 +83,20 @@ pip install -r requirements.txt
 
 2. Configure environment variables (optional, defaults provided):
 ```bash
-export INTEGRATIONS_SERVICE_URL=http://localhost:8000
-export ACTIONS_SERVICE_URL=http://localhost:8004
-export CLASSIFICATION_SERVICE_URL=http://localhost:8001
-export FASTAPIPORT=8002
+export INTEGRATIONS_SERVICE_URL=http://localhost:8001
+export ACTIONS_SERVICE_URL=http://localhost:8002
+export CLASSIFICATION_SERVICE_URL=http://localhost:8003
+export FASTAPIPORT=8000
 export REQUEST_TIMEOUT=30
 export LOG_LEVEL=INFO
 ```
 
 Or create a `.env` file:
 ```
-INTEGRATIONS_SERVICE_URL=http://localhost:8000
-ACTIONS_SERVICE_URL=http://localhost:8004
-CLASSIFICATION_SERVICE_URL=http://localhost:8001
-FASTAPIPORT=8002
+INTEGRATIONS_SERVICE_URL=http://localhost:8001
+ACTIONS_SERVICE_URL=http://localhost:8002
+CLASSIFICATION_SERVICE_URL=http://localhost:8003
+FASTAPIPORT=8000
 REQUEST_TIMEOUT=30
 LOG_LEVEL=INFO
 ```
@@ -90,7 +108,7 @@ python main.py
 
 Or with uvicorn:
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## API Documentation

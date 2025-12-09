@@ -25,6 +25,9 @@ class ServiceClient:
         headers: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """Make HTTP request to atomic service"""
+        # Ensure endpoint has trailing slash for collection endpoints to avoid 307 redirects
+        if endpoint in ["/connections", "/messages", "/syncs"] and not endpoint.endswith("/"):
+            endpoint = endpoint + "/"
         url = f"{self.base_url}{endpoint}"
         
         request_headers = {"Content-Type": "application/json"}

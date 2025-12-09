@@ -1,5 +1,5 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -7,16 +7,16 @@ class Settings(BaseSettings):
     
     # Atomic service URLs
     INTEGRATIONS_SERVICE_URL: str = os.getenv(
-        "INTEGRATIONS_SERVICE_URL", 
-        "http://localhost:8000"
+        "https://integrations-svc-ms2-ft4pa23xra-uc.a.run.app",
+        "http://localhost:8001"
     )
     ACTIONS_SERVICE_URL: str = os.getenv(
         "ACTIONS_SERVICE_URL",
-        "http://localhost:8004"
+        "http://localhost:8002"
     )
     CLASSIFICATION_SERVICE_URL: str = os.getenv(
         "CLASSIFICATION_SERVICE_URL",
-        "http://localhost:8001"
+        "http://localhost:8003"
     )
     
     # Request timeout in seconds
@@ -31,9 +31,10 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
 
 
 settings = Settings()
