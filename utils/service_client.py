@@ -3,6 +3,7 @@ import httpx
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 from fastapi import HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,10 @@ class ServiceClient:
         request_headers = {"Content-Type": "application/json"}
         if headers:
             request_headers.update(headers)
+
+        # JSON-safety boundary: encode params + body so UUID/Enum/datetime/Pydantic are safe
+        encoded_params = jsonable_encoder(params) if params is not None else None
+        encoded_json = jsonable_encoder(json_data) if json_data is not None else None
         
         try:
             logger.info(f"[{self.service_name}] {method} {url}")
@@ -42,9 +47,10 @@ class ServiceClient:
                 response = await client.request(
                     method=method,
                     url=url,
-                    params=params,
-                    json=json_data,
-                    headers=request_headers
+                    params=encoded_params,
+                    json=encoded_json,
+                    headers=request_headers,
+                    cookies=cookies
                 )
                 
                 logger.info(
@@ -83,8 +89,8 @@ class ServiceClient:
     async def get(
         self, 
         endpoint: str, 
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
         cookies: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """GET request"""
@@ -99,9 +105,9 @@ class ServiceClient:
     async def post(
         self, 
         endpoint: str, 
-        json_data: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        json_data: Optional[Any] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
         cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """POST request"""
@@ -117,8 +123,8 @@ class ServiceClient:
     async def put(
         self,
         endpoint: str,
-        json_data: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        json_data: Optional[Any] = None,
+        headers: Optional[Dict[str, str]] = None,
         cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """PUT request"""
@@ -133,8 +139,8 @@ class ServiceClient:
     async def patch(
         self,
         endpoint: str,
-        json_data: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        json_data: Optional[Any] = None,
+        headers: Optional[Dict[str, str]] = None,
         cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """PATCH request"""
@@ -149,8 +155,8 @@ class ServiceClient:
     async def delete(
         self, 
         endpoint: str,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
         cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """DELETE request"""

@@ -31,7 +31,7 @@ async def link_external_gmail(
     if current_redirect_uri not in settings.GOOGLE_REDIRECT_URIS:
         raise HTTPException(status_code=500, detail=f"Redirect URI not allowed: {current_redirect_uri}")
     
-    flow: Flow = build_google_flow(current_redirect_uri)
+    flow: Flow = build_google_flow(current_redirect_uri, gmail_scopes=True)
     
     authorization_url, state = flow.authorization_url(
         access_type="offline",
