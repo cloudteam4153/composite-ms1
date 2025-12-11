@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.database import get_db
+from enum import Enum as PyEnum
 
 from google.oauth2.credentials import Credentials
 from google.oauth2.id_token import verify_oauth2_token
@@ -28,6 +29,17 @@ router = APIRouter(
     tags=["OAuth Callbacks (Internal Use Only)"],
 )
 
+
+# -----------------------------------------------------------------------------
+# Enums
+# -----------------------------------------------------------------------------
+class ConnectionStatus(PyEnum):
+    """Status of an OAuth connection"""
+    PENDING = "pending"      # OAuth flow initiated but not completed
+    ACTIVE = "active"        # Successfully connected and tokens are valid
+    EXPIRED = "expired"      # Tokens expired and refresh failed
+    REVOKED = "revoked"      # User revoked access
+    FAILED = "failed"        # OAuth flow failed
 
 
 # Gmail Callback GET Endpoint (defined as per Google API spec; internal only)
@@ -239,7 +251,7 @@ async def gmail_callback(
         "user_id": user_id,
         "provider": OAuthProvider(oauth_record.provider),
         "provider_account_id": gmail,
-        "status": "ACTIVE",
+        "status": ConnectionStatus.ACTIVE,
         "scopes": scopes,
         "access_token": access_token_encrypted,
         "refresh_token": refresh_token_encrypted,
