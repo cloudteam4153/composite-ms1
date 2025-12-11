@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Callable, Any, Dict
+from typing import List, Callable, Any, Dict, Awaitable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import functools
 
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 async def execute_parallel(
-    tasks: List[Callable],
+    tasks: Sequence[Awaitable[Any]],
     max_workers: int = 5
 ) -> List[Any]:
     """
@@ -40,7 +40,7 @@ async def execute_parallel(
 
 
 async def execute_parallel_with_timeout(
-    tasks: List[Callable],
+    tasks: List[Awaitable[Any]],
     timeout: float = 30.0,
     max_workers: int = 5
 ) -> List[Any]:

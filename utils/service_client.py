@@ -22,7 +22,8 @@ class ServiceClient:
         endpoint: str,
         params: Optional[Dict] = None,
         json_data: Optional[Dict] = None,
-        headers: Optional[Dict] = None
+        headers: Optional[Dict] = None,
+        cookies: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """Make HTTP request to atomic service"""
         # Ensure endpoint has trailing slash for collection endpoints to avoid 307 redirects
@@ -79,42 +80,88 @@ class ServiceClient:
                 detail=f"Error communicating with {self.service_name}: {str(e)}"
             )
     
-    async def get(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
+    async def get(
+        self, 
+        endpoint: str, 
+        params: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        cookies: Optional[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
         """GET request"""
-        return await self._make_request("GET", endpoint, params=params)
+        return await self._make_request(
+            "GET", 
+            endpoint, 
+            params=params,
+            headers=headers,
+            cookies=cookies,
+        )
     
     async def post(
         self, 
         endpoint: str, 
         json_data: Optional[Dict] = None,
-        params: Optional[Dict] = None
+        params: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """POST request"""
-        return await self._make_request("POST", endpoint, json_data=json_data, params=params)
+        return await self._make_request(
+            "POST",
+            endpoint,
+            json_data=json_data,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+        )
     
     async def put(
         self,
         endpoint: str,
-        json_data: Optional[Dict] = None
+        json_data: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """PUT request"""
-        return await self._make_request("PUT", endpoint, json_data=json_data)
+        return await self._make_request(
+            "PUT",
+            endpoint,
+            json_data=json_data,
+            headers=headers,
+            cookies=cookies,
+        )
     
     async def patch(
         self,
         endpoint: str,
-        json_data: Optional[Dict] = None
+        json_data: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """PATCH request"""
-        return await self._make_request("PATCH", endpoint, json_data=json_data)
+        return await self._make_request(
+            "PATCH",
+            endpoint,
+            json_data=json_data,
+            headers=headers,
+            cookies=cookies,
+        )
     
     async def delete(
         self, 
         endpoint: str,
-        params: Optional[Dict] = None
+        params: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        cookies: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """DELETE request"""
-        return await self._make_request("DELETE", endpoint, params=params)
+        return await self._make_request(
+            "DELETE",
+            endpoint,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+        )
+
 
 
 # Service client instances

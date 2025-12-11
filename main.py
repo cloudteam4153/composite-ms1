@@ -3,12 +3,26 @@ from __future__ import annotations
 import os
 import logging
 from contextlib import asynccontextmanager
+from typing import Dict, Any 
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import integrations, actions, classification
+from routers.api import (
+    composite, auth, external, callback
+)
+from routers.api.resources import (
+    actions,
+    classifications,
+    briefs,
+    syncs,
+    messages,
+    connections,
+    health
+)
+
 from config.settings import settings
+
 from utils.logging_config import setup_logging
 from utils.db_coordinator import DatabaseCoordinator
 
@@ -47,11 +61,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(router=integrations.router, prefix="/api/integrations", tags=["Integrations"])
-app.include_router(router=actions.router, prefix="/api/actions", tags=["Actions"])
-app.include_router(router=classification.router, prefix="/api/classification", tags=["Classification"])
+# -----------------------------------------------------------------------------
+# API Router
+# -----------------------------------------------------------------------------
 
+# Composite logic
+app.include_router(composite.router)
+app.include_router(callback.router)
+app.include_router(auth.router)
+app.include_router(external.router)
+
+# From Actions Service
+app.include_router(actions.router)
+
+# From Classifications Service
+app.include_router(classifications.router)
+app.include_router(briefs.router)
+
+# From Integrations Service
+app.include_router(syncs.router)
+app.include_router(messages.router)
+app.include_router(connections.router)
+
+# Services health
+app.include_router(health.router)
+
+# -----------------------------------------------------------------------------
+# ROOT 
+# -----------------------------------------------------------------------------
 
 @app.get("/")
 def root():
@@ -70,10 +107,14 @@ def root():
     }
 
 
+# -----------------------------------------------------------------------------
+# Health 
+# -----------------------------------------------------------------------------
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint - checks composite service and all atomic services"""
-    composite_health = {
+    composite_health: Dict[str, Any] = {
         "status": "healthy",
         "service": "composite-ms1",
         "version": "1.0.0"
@@ -92,43 +133,11 @@ async def health_check():
     
     return composite_health
 
-
-@app.get("/api/composite/dashboard")
-async def get_dashboard():
-    """
-    Composite endpoint demonstrating parallel execution.
-    Fetches data from multiple services concurrently.
-    """
-    from utils.service_client import integrations_client, actions_client, classification_client
-    from utils.parallel_executor import execute_parallel
-    
-    # Define parallel tasks
-    tasks = [
-        integrations_client.get("/health"),
-        actions_client.get("/health"),
-        classification_client.get("/health")
-    ]
-    
-    # Execute in parallel
-    try:
-        results = await execute_parallel(tasks)
-        return {
-            "status": "success",
-            "services": {
-                "integrations": results[0],
-                "actions": results[1],
-                "classification": results[2]
-            }
-        }
-    except Exception as e:
-        logger.error(f"Error fetching dashboard data: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error fetching dashboard data: {str(e)}"
-        )
-
+# -----------------------------------------------------------------------------
+# MAIN 
+# -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import uvicorn
+    
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
-
