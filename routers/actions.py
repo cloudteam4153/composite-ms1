@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query, Path
+from fastapi import APIRouter, HTTPException, Query, Path, Request, Response
 from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel
 
 from utils.service_client import actions_client
 from utils.parallel_executor import execute_parallel
+from utils.response_handler import forward_request_headers, handle_service_response
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,11 @@ router = APIRouter()
 # =============================================================================
 
 @router.get("/health")
-async def get_health():
+async def get_health(request: Request, response: Response):
     """Health check endpoint - delegates to actions service"""
-    return await actions_client.get("/health")
+    headers = forward_request_headers(request)
+    service_response = await actions_client.get("/health", headers=headers)
+    return handle_service_response(service_response, response)
 
 
 # =============================================================================
@@ -28,6 +31,8 @@ async def get_health():
 
 @router.get("/tasks")
 async def get_tasks(
+    request: Request,
+    response: Response,
     user_id: int = Query(..., description="User ID to filter tasks"),
     status: Optional[str] = None,
     priority: Optional[int] = Query(None, ge=1, le=5)
@@ -39,51 +44,75 @@ async def get_tasks(
     if priority:
         params["priority"] = priority
     
-    return await actions_client.get("/tasks", params=params)
+    headers = forward_request_headers(request)
+    service_response = await actions_client.get("/tasks", params=params, headers=headers)
+    return handle_service_response(service_response, response)
 
 
 @router.get("/tasks/{task_id}")
-async def get_task(task_id: int = Path(...)):
+async def get_task(
+    request: Request,
+    response: Response,
+    task_id: int = Path(...)
+):
     """Get specific task - delegates to actions service"""
-    return await actions_client.get(f"/tasks/{task_id}")
+    headers = forward_request_headers(request)
+    service_response = await actions_client.get(f"/tasks/{task_id}", headers=headers)
+    return handle_service_response(service_response, response)
 
 
 @router.post("/tasks")
-async def create_task(task_data: dict):
+async def create_task(
+    request: Request,
+    response: Response,
+    task_data: dict
+):
     """Create new task - delegates to actions service"""
-    return await actions_client.post("/tasks", json_data=task_data)
+    service_response = await actions_client.post("/tasks", json_data=task_data)
+    return handle_service_response(service_response, response, is_post=True)
 
 
 @router.put("/tasks/{task_id}")
 async def update_task(
+    request: Request,
+    response: Response,
     task_id: int = Path(...),
     task_update: dict = None
 ):
     """Update task - delegates to actions service"""
-    return await actions_client.put(
+    service_response = await actions_client.put(
         f"/tasks/{task_id}",
         json_data=task_update
     )
+    return handle_service_response(service_response, response)
 
 
 @router.delete("/tasks/{task_id}")
-async def delete_task(task_id: int = Path(...)):
+async def delete_task(
+    request: Request,
+    response: Response,
+    task_id: int = Path(...)
+):
     """Delete task - delegates to actions service"""
-    return await actions_client.delete(f"/tasks/{task_id}")
+    service_response = await actions_client.delete(f"/tasks/{task_id}")
+    return handle_service_response(service_response, response)
 
 
 @router.post("/tasks/batch")
 async def create_tasks_from_messages(
+    request: Request,
+    response: Response,
     messages: List[dict],
     user_id: int = Query(...)
 ):
-    """Create tasks from messages - delegates to actions service"""
+    """Create tasks from messages - delegates to actions service (async operation)"""
     params = {"user_id": user_id}
-    return await actions_client.post(
+    service_response = await actions_client.post(
         "/tasks/batch",
         json_data=messages,
         params=params
     )
+    return handle_service_response(service_response, response, is_async=True)
 
 
 # =============================================================================

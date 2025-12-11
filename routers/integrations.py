@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Path, Request
+from fastapi import APIRouter, HTTPException, Query, Path, Request, Response, status
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -17,19 +17,58 @@ router = APIRouter()
 # =============================================================================
 
 @router.get("/health")
-async def get_health(echo: Optional[str] = Query(None)):
+async def get_health(
+    request: Request,
+    response: Response,
+    echo: Optional[str] = Query(None)
+):
     """Health check endpoint - delegates to integrations service"""
-    return await integrations_client.get("/health", params={"echo": echo} if echo else None)
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get("/health", params={"echo": echo} if echo else None, headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.get("/health/{path_echo}")
 async def get_health_with_path(
+    request: Request,
+    response: Response,
     path_echo: str = Path(...),
     echo: Optional[str] = Query(None)
 ):
     """Health check with path echo - delegates to integrations service"""
     params = {"echo": echo} if echo else None
-    return await integrations_client.get(f"/health/{path_echo}", params=params)
+    
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get(f"/health/{path_echo}", params=params, headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 # =============================================================================
@@ -39,6 +78,7 @@ async def get_health_with_path(
 @router.get("/connections")
 async def list_connections(
     request: Request,
+    response: Response,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     provider: Optional[str] = None,
@@ -57,62 +97,140 @@ async def list_connections(
     if is_active is not None:
         params["is_active"] = is_active
     
-    return await integrations_client.get("/connections", params=params)
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get("/connections", params=params, headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.get("/connections/{connection_id}")
 async def get_connection(
     request: Request,
+    response: Response,
     connection_id: UUID = Path(...)
 ):
     """Get specific connection - delegates to integrations service"""
-    return await integrations_client.get(f"/connections/{connection_id}")
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get(f"/connections/{connection_id}", headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.post("/connections")
 async def create_connection(
     request: Request,
+    response: Response,
     connection_data: dict
 ):
     """Create new connection - delegates to integrations service"""
-    return await integrations_client.post("/connections", json_data=connection_data)
+    service_response = await integrations_client.post("/connections", json_data=connection_data)
+    
+    # Forward response headers (e.g., Location, ETag)
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Return 201 for POST (or use status from service if different)
+    response.status_code = status.HTTP_201_CREATED if service_response.status_code == 200 else service_response.status_code
+    return service_response.data
 
 
 @router.patch("/connections/{connection_id}")
 async def update_connection(
     request: Request,
+    response: Response,
     connection_id: UUID = Path(...),
     connection_update: dict = None
 ):
     """Update connection - delegates to integrations service"""
-    return await integrations_client.patch(
+    service_response = await integrations_client.patch(
         f"/connections/{connection_id}",
         json_data=connection_update
     )
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.delete("/connections/{connection_id}")
-async def delete_connection(connection_id: UUID = Path(...)):
+async def delete_connection(
+    request: Request,
+    response: Response,
+    connection_id: UUID = Path(...)
+):
     """Delete connection - delegates to integrations service"""
-    return await integrations_client.delete(f"/connections/{connection_id}")
+    service_response = await integrations_client.delete(f"/connections/{connection_id}")
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.post("/connections/{connection_id}/test")
 async def test_connection(
     request: Request,
+    response: Response,
     connection_id: UUID = Path(...)
 ):
     """Test connection - delegates to integrations service"""
-    return await integrations_client.post(f"/connections/{connection_id}/test")
+    service_response = await integrations_client.post(f"/connections/{connection_id}/test")
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.post("/connections/{connection_id}/refresh")
 async def refresh_connection(
     request: Request,
+    response: Response,
     connection_id: UUID = Path(...)
 ):
     """Refresh connection - delegates to integrations service"""
-    return await integrations_client.post(f"/connections/{connection_id}/refresh")
+    service_response = await integrations_client.post(f"/connections/{connection_id}/refresh")
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Return 202 for async operations like refresh
+    response.status_code = status.HTTP_202_ACCEPTED if service_response.status_code == 200 else service_response.status_code
+    return service_response.data
 
 
 # =============================================================================
@@ -122,6 +240,7 @@ async def refresh_connection(
 @router.get("/messages")
 async def list_messages(
     request: Request,
+    response: Response,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = None,
@@ -156,21 +275,55 @@ async def list_messages(
     if has_raw is not None:
         params["has_raw"] = has_raw
     
-    return await integrations_client.get("/messages", params=params)
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get("/messages", params=params, headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.get("/messages/{message_id}")
 async def get_message(
     request: Request,
+    response: Response,
     message_id: UUID = Path(...)
 ):
     """Get specific message - delegates to integrations service"""
-    return await integrations_client.get(f"/messages/{message_id}")
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get(f"/messages/{message_id}", headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.post("/messages")
 async def create_message(
     request: Request,
+    response: Response,
     message_data: dict
 ):
     """Create new message - delegates to integrations service"""
@@ -178,35 +331,71 @@ async def create_message(
     if "user_id" in message_data:
         await ForeignKeyValidator.validate_user_exists(UUID(message_data["user_id"]))
     
-    return await integrations_client.post("/messages", json_data=message_data)
+    service_response = await integrations_client.post("/messages", json_data=message_data)
+    
+    # Forward response headers (e.g., Location, ETag)
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Return 201 for POST (or use status from service if different)
+    response.status_code = status.HTTP_201_CREATED if service_response.status_code == 200 else service_response.status_code
+    return service_response.data
 
 
 @router.patch("/messages/{message_id}")
 async def update_message(
     request: Request,
+    response: Response,
     message_id: UUID = Path(...),
     message_update: dict = None
 ):
     """Update message - delegates to integrations service"""
-    return await integrations_client.patch(
+    service_response = await integrations_client.patch(
         f"/messages/{message_id}",
         json_data=message_update
     )
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.delete("/messages/{message_id}")
-async def delete_message(message_id: UUID = Path(...)):
+async def delete_message(
+    request: Request,
+    response: Response,
+    message_id: UUID = Path(...)
+):
     """Delete message - delegates to integrations service"""
-    return await integrations_client.delete(f"/messages/{message_id}")
+    service_response = await integrations_client.delete(f"/messages/{message_id}")
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.delete("/messages")
 async def bulk_delete_messages(
+    request: Request,
+    response: Response,
     message_ids: List[UUID] = Query(...)
 ):
     """Bulk delete messages - delegates to integrations service"""
     params = {"message_ids": [str(mid) for mid in message_ids]}
-    return await integrations_client.delete("/messages", params=params)
+    service_response = await integrations_client.delete("/messages", params=params)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 # =============================================================================
@@ -216,6 +405,7 @@ async def bulk_delete_messages(
 @router.get("/syncs")
 async def list_syncs(
     request: Request,
+    response: Response,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     status: Optional[str] = None,
@@ -244,30 +434,81 @@ async def list_syncs(
     if created_before:
         params["created_before"] = created_before.isoformat()
     
-    return await integrations_client.get("/syncs", params=params)
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get("/syncs", params=params, headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.get("/syncs/{sync_id}")
 async def get_sync(
     request: Request,
+    response: Response,
     sync_id: UUID = Path(...)
 ):
     """Get specific sync - delegates to integrations service"""
-    return await integrations_client.get(f"/syncs/{sync_id}")
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get(f"/syncs/{sync_id}", headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.get("/syncs/{sync_id}/status")
 async def get_sync_status(
     request: Request,
+    response: Response,
     sync_id: UUID = Path(...)
 ):
     """Get sync status - delegates to integrations service"""
-    return await integrations_client.get(f"/syncs/{sync_id}/status")
+    # Forward If-None-Match header
+    headers = {}
+    if "if-none-match" in request.headers:
+        headers["If-None-Match"] = request.headers["if-none-match"]
+    
+    service_response = await integrations_client.get(f"/syncs/{sync_id}/status", headers=headers)
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Handle 304 Not Modified
+    if service_response.status_code == 304:
+        return Response(status_code=304, headers=dict(response.headers))
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.post("/syncs")
 async def create_sync(
     request: Request,
+    response: Response,
     sync_data: dict
 ):
     """Create new sync - delegates to integrations service"""
@@ -278,24 +519,51 @@ async def create_sync(
             UUID(sync_data["user_id"])
         )
     
-    return await integrations_client.post("/syncs", json_data=sync_data)
+    service_response = await integrations_client.post("/syncs", json_data=sync_data)
+    
+    # Forward response headers (e.g., Location, ETag)
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    # Return 202 for async operations like syncs
+    response.status_code = status.HTTP_202_ACCEPTED if service_response.status_code == 200 else service_response.status_code
+    return service_response.data
 
 
 @router.patch("/syncs/{sync_id}")
 async def update_sync(
     request: Request,
+    response: Response,
     sync_id: UUID = Path(...),
     sync_update: dict = None
 ):
     """Update sync - delegates to integrations service"""
-    return await integrations_client.patch(
+    service_response = await integrations_client.patch(
         f"/syncs/{sync_id}",
         json_data=sync_update
     )
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 
 
 @router.delete("/syncs/{sync_id}")
-async def delete_sync(sync_id: UUID = Path(...)):
+async def delete_sync(
+    request: Request,
+    response: Response,
+    sync_id: UUID = Path(...)
+):
     """Delete sync - delegates to integrations service"""
-    return await integrations_client.delete(f"/syncs/{sync_id}")
+    service_response = await integrations_client.delete(f"/syncs/{sync_id}")
+    
+    # Forward response headers
+    for header_name, header_value in service_response.headers.items():
+        response.headers[header_name] = header_value
+    
+    response.status_code = service_response.status_code
+    return service_response.data
 

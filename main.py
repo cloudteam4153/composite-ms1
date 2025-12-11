@@ -16,7 +16,8 @@ from utils.db_coordinator import DatabaseCoordinator
 setup_logging()
 logger = logging.getLogger(__name__)
 
-port = int(os.environ.get("FASTAPIPORT", 8002))
+# Cloud Run uses PORT env var, fallback to FASTAPIPORT or default 8002
+port = int(os.environ.get("PORT", os.environ.get("FASTAPIPORT", 8002)))
 
 
 @asynccontextmanager
