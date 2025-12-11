@@ -18,7 +18,8 @@ from routers.api.resources import (
     syncs,
     messages,
     connections,
-    health
+    health,
+    users
 )
 
 from config.settings import settings
@@ -70,6 +71,9 @@ app.include_router(composite.router)
 app.include_router(callback.router)
 app.include_router(auth.router)
 app.include_router(external.router)
+
+# From Composite Service
+app.include_router(users.router)
 
 # From Actions Service
 app.include_router(actions.router)
