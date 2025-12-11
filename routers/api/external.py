@@ -48,10 +48,16 @@ async def link_external_gmail(
     await db.commit()
 
     # Return to frontend (no HATEOAS since its a specific redirect)
-    return JSONResponse(
-        content={ 
-            "user_id": current_user.id,
-            "auth_url": authorization_url,
-            "provider": OAuthProvider.GMAIL,
-        }
-    )
+    return {
+        "user_id": current_user.id,
+        "auth_url": authorization_url,
+        "provider": OAuthProvider.GMAIL,
+    }
+
+    # return JSONResponse(
+    #     content={ 
+    #         "user_id": current_user.id,
+    #         "auth_url": authorization_url,
+    #         "provider": OAuthProvider.GMAIL,
+    #     }
+    # )
