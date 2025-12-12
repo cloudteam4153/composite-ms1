@@ -35,6 +35,7 @@ async def list_syncs(
     status: Optional[str] = None,
     sync_type: Optional[str] = None,
     connection_id: Optional[UUID] = None,
+    user_id: Optional[UUID] = None,
     created_after: Optional[datetime] = None,
     created_before: Optional[datetime] = None,
     sort_by: str = Query("created_at"),
@@ -53,6 +54,8 @@ async def list_syncs(
         params["sync_type"] = sync_type
     if connection_id:
         params["connection_id"] = str(connection_id)
+    if user_id:
+        params["user_id"] = str(user_id)
     if created_after:
         params["created_after"] = created_after.isoformat()
     if created_before:
@@ -70,7 +73,7 @@ async def get_sync(
     return await integrations_client.get(f"/syncs/{sync_id}")
 
 
-@router.get("/syncs/{sync_id}/status")
+@router.get("/{sync_id}/status")
 async def get_sync_status(
     request: Request,
     sync_id: UUID = Path(...)
@@ -82,24 +85,19 @@ async def get_sync_status(
 @router.post("/")
 async def create_sync(
     request: Request,
-    sync_data: dict
+    user_id: UUID
 ):
     """Create new sync - delegates to integrations service"""
-    # Validate foreign key relationships
-    if "connection_id" in sync_data and "user_id" in sync_data:
-        await ForeignKeyValidator.validate_connection_exists(
-            UUID(sync_data["connection_id"]),
-            UUID(sync_data["user_id"])
-        )
+    sync_data = {"user_id": str(user_id)}
     
     return await integrations_client.post("/syncs", json_data=sync_data)
 
 
 @router.patch("/{sync_id}")
 async def update_sync(
+    sync_update: Dict,
     request: Request,
-    sync_id: UUID = Path(...),
-    sync_update: Dict | None = None
+    sync_id: UUID = Path(...)
 ):
     """Update sync - delegates to integrations service"""
     return await integrations_client.patch(
