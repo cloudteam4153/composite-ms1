@@ -163,6 +163,6 @@ async def refresh_tokens(
 # Get current user id
 @router.get("/me")
 async def get_me(
-    current_user: UUID = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
-    return { "user_id": str(current_user)}
+    return { "user_id": str(current_user.id)}
