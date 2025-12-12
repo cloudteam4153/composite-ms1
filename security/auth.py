@@ -19,20 +19,7 @@ async def get_current_user(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """
-    Resolve the current user from cookies.
-
-    Flow:
-    1. Try access token:
-       - If valid: return user_id
-       - If invalid/expired: fall back to refresh flow
-    2. Try refresh token:
-       - Look up user by hashed refresh token
-       - Verify refresh token
-       - Issue new tokens + set cookies
-       - Return user_id
-    3. If neither works: raise 401 (frontend should redirect to /login)
-    """
+ 
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
 
@@ -63,22 +50,28 @@ async def get_current_user(
         # Hash the incoming refresh token and look up the user by hash
         hashed = hash_refresh_token(refresh_token)
 
-        stmt = select(User).where(User.hashed_refresh_token == hashed)
+        stmt = select(User).where(
+            User.hashed_refresh_token == hashed,
+            User.refresh_token_expires_at > datetime.now(timezone.utc),
+            User.is_active == True,
+        )
         result = await db.execute(stmt)
         user: User | None = result.scalar_one_or_none()
 
         if not user or not user.is_active:
+            response.delete_cookie("access_token", path="/")
+            response.delete_cookie("refresh_token", path="/")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired refresh token",
             )
 
-        # Refresh token is valid → rotate tokens & set cookies
-        await issue_tokens_and_set_cookies(
-            response=response,
-            db=db,
-            user=user,
-        )
+        # # Refresh token is valid → rotate tokens & set cookies
+        # await issue_tokens_and_set_cookies(
+        #     response=response,
+        #     db=db,
+        #     user=user,
+        # )
 
         return user
 
@@ -135,8 +128,6 @@ async def issue_tokens_and_set_cookies(
         path="/",
         max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_LIFESPAN_DAYS,
     )
-    
-    response.headers["X-Access-Token"] = access_token
-    response.headers["X-Refresh-Token"] = refresh_token
+
 
     return access_token, refresh_token
