@@ -264,4 +264,12 @@ async def gmail_callback(
         json_data=new_conn
     )
 
-    return resp
+    redirect_url = oauth_record.redirect_url or settings.DEFAULT_FRONTEND_URL
+    parsed = urlparse(redirect_url)
+    origin_only = f"{parsed.scheme}://{parsed.netloc}"
+
+    if origin_only not in settings.ALLOWED_REDIRECT_ORIGINS:
+        redirect_url = settings.DEFAULT_FRONTEND_URL
+    
+
+    return RedirectResponse(url=redirect_url)

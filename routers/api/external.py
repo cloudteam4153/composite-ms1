@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.database import get_db
+from urllib.parse import urlparse, urlunparse
 
 from config.settings import settings
 from security.auth import get_current_user
@@ -37,12 +38,32 @@ async def link_external_gmail(
         access_type="offline",
     )
 
+    redirect_url = (
+        request.query_params.get("redirect") or 
+        request.headers.get("origin") or
+        settings.DEFAULT_FRONTEND_URL
+    )
+    parsed = urlparse(redirect_url)
+
+    clean_redirect_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path.rstrip("/"),
+        "", "", ""
+    ))
+
+    origin_only = f"{parsed.scheme}://{parsed.netloc}"
+
+    if origin_only not in settings.ALLOWED_REDIRECT_ORIGINS:
+        clean_redirect_url = settings.DEFAULT_FRONTEND_URL
+
     # Store OAuth temp record
     oauth_state = OAuth(
         state_token=state,
         user_id=current_user.id,
         provider=OAuthProvider.GMAIL,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5)
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        redirect_url=clean_redirect_url
     )
     db.add(oauth_state)
     await db.commit()
@@ -54,10 +75,3 @@ async def link_external_gmail(
         "provider": OAuthProvider.GMAIL,
     }
 
-    # return JSONResponse(
-    #     content={ 
-    #         "user_id": current_user.id,
-    #         "auth_url": authorization_url,
-    #         "provider": OAuthProvider.GMAIL,
-    #     }
-    # )
