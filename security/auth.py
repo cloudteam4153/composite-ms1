@@ -66,13 +66,6 @@ async def get_current_user(
                 detail="Invalid or expired refresh token",
             )
 
-        # # Refresh token is valid → rotate tokens & set cookies
-        # await issue_tokens_and_set_cookies(
-        #     response=response,
-        #     db=db,
-        #     user=user,
-        # )
-
         return user
 
     # No usable tokens
@@ -104,7 +97,9 @@ async def issue_tokens_and_set_cookies(
     )
     user.updated_at = datetime.now(timezone.utc)
 
+    db.add(user)
     await db.commit()
+    await db.refresh(user)
 
     # 3) Set cookies
     is_prod = settings.ENVIRONMENT == "production"

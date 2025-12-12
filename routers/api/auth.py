@@ -123,6 +123,13 @@ async def refresh_tokens(
     db: AsyncSession = Depends(get_db),
     refresh_token: str | None = Cookie(default=None, include_in_schema=False),
 ):
+    
+    print("[refresh] cookie present:", bool(refresh_token))
+    print("[refresh] cookie len:", len(refresh_token) if refresh_token else None)
+    # show only a prefix/suffix of the cookie (still avoid printing full token)
+    if refresh_token:
+        print("[refresh] cookie head/tail:", refresh_token[:6], "...", refresh_token[-6:])
+
     if not refresh_token:
         response.delete_cookie("access_token", path="/")
         response.delete_cookie("refresh_token", path="/")
@@ -131,7 +138,19 @@ async def refresh_tokens(
             detail="Missing refresh token",
         )
 
+    print()
     hashed = hash_refresh_token(refresh_token)
+    print("[refresh] computed sha256:", hashed[:12], "...", hashed[-12:])
+    
+    sample = await db.execute(
+        select(User.id, User.hashed_refresh_token, User.refresh_token_expires_at, User.is_active)
+        .order_by(User.updated_at.desc())
+        .limit(5)
+    )
+    rows = sample.all()
+    print("[refresh] recent users:")
+    for uid, h, exp, active in rows:
+        print("  -", uid, h[:12], "...", h[-12:], "exp:", exp, "active:", active)
 
     result = await db.execute(
         select(User).where(
@@ -142,6 +161,7 @@ async def refresh_tokens(
     )
 
     user = result.scalar_one_or_none()
+    print("[refresh] user matched:", bool(user))
 
     if not user:
         response.delete_cookie("access_token", path="/")
